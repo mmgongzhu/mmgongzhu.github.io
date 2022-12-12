@@ -173,10 +173,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-12-07 11:27:25 / 修改时间：11:28:34" itemprop="dateCreated datePublished" datetime="2022-12-07T11:27:25+08:00">2022-12-07</time>
+              <time title="创建时间：2022-12-07 11:27:25" itemprop="dateCreated datePublished" datetime="2022-12-07T11:27:25+08:00">2022-12-07</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-12-12 23:24:12" itemprop="dateModified" datetime="2022-12-12T23:24:12+08:00">2022-12-12</time>
+              </span>
 
           
 
@@ -400,7 +406,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mybatis-plus:</span><br><span class="line">  global-config:</span><br><span class="line">    db-config:   </span><br><span class="line">      logic-delete-field: deleted #设置逻辑删除的字段</span><br><span class="line">      logic-delete-value: <span class="number">1</span> #设置删除后用 <span class="number">1</span>表示</span><br><span class="line">      logic-not-delete-value: <span class="number">0</span> # 设置未删除用 <span class="number">0</span>表示</span><br></pre></td></tr></table></figure>
 
 <h5 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h5><p>当加上了注解或者在ym文件中进行了配置后，mybatisplus实际上已经把删除对应的操作，改成update，当实现删除时，就是&#x3D;&#x3D;修改字段deleted属性值为1&#x3D;&#x3D;，可以在日志中进行查看。</p>
-<p><img src="E:\初始工具\mybatisplus\imgs\img_deleted.png"></p>
+<p><img src="E:\myblog\themes\next\source\images\img_deleted.png"></p>
 <p>而删除的字段不参与的原理是加上了注解之后，mybatisplus在查询语句的条件再加上一句  where deleted &#x3D; 0。也就是只有字段为未删除状态时才会参与查询</p>
 <h4 id="乐观锁问题"><a href="#乐观锁问题" class="headerlink" title="乐观锁问题"></a>乐观锁问题</h4><p>当不同的用户对相同的字段进行操作时，由于同时操作可能会引起各种冲突。</p>
 <p>如秒杀商品，若有100件商品在限时内出售，大量的用户在同一时间进行并发操作而引起乐观锁问题</p>
@@ -420,9 +426,9 @@
 <p>运行结果：</p>
 </li>
 </ol>
-<p>  A用户生成的sql语句<img src="E:\初始工具\mybatisplus\imgs\img_mybatisplus_locker1.png"></p>
+<p>  A用户生成的sql语句<img src="E:\myblog\themes\next\source\images\img_mybatisplus_locker1.png"></p>
 <p>B用户生成的sql语句</p>
-<p><img src="E:\初始工具\mybatisplus\imgs\img_mybatisplus_locker2.png"></p>
+<p><img src="E:\myblog\themes\next\source\images\img_mybatisplus_locker2.png"></p>
 <p>可以看到，只有A用户的修改操作成功。</p>
 <h5 id="实现原理-1"><a href="#实现原理-1" class="headerlink" title="实现原理"></a>实现原理</h5><p>根据上述的例子中参数和结果可发现，当实现了乐观锁的解锁拦截器后，修改语句中会在修改的条件加上&#x3D;&#x3D;version&#x3D;？&#x3D;&#x3D;,也就是version需要和当前库中的字段对应才能进行修改。并且拦截器还会在修改时将&#x3D;&#x3D;version+1&#x3D;&#x3D;,保证每个用户操作时都是不同的version。</p>
 <p>上述例子中，用户A时间要稍微比B用户早，所以此时version字段值为4对应的操作是给A用户的，而A用户完成修改后（提交后）拦截器将version+1,使得现在数据库中version值为5. 但对于B用户来说，在修改操作进行，但未提交时，用户B是以version值为4的参数去操作。而数据库中现在version实际以及等于5了。无法满足修改的条件：version&#x3D;4。所以B用户此次操作不成功。</p>
